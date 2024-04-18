@@ -1,0 +1,123 @@
+# =============================================================================
+# Timelike
+# =============================================================================
+from einsteinpy.geodesic import Timelike
+from einsteinpy.plotting import StaticGeodesicPlotter, GeodesicPlotter
+
+start_time = time.time()
+
+b = 0.767851
+# Constant Radius Orbit
+position = [4, np.pi/ 3, 0.] # [4, np.pi / 3, 0.] original
+momentum = [0, b, 2.] # [0., 0.767851, 2.]
+a = 0.99 # 0.99
+steps = 400 # set to 10000 for pi/4
+delta = 0.5 #set to 0.5 by default
+omega = 1
+suppress_warnings = True
+
+geod = Timelike(
+    metric="Kerr",
+    metric_params = (a,),
+    position=position,
+    momentum=momentum,
+    steps=steps,
+    delta=delta,
+    return_cartesian=True,
+)
+
+end_time = time.time()
+ellapse_time = end_time - start_time
+
+print('The ellapse time is', ellapse_time, 'seconds')
+
+trajectory = geod.trajectory[1]
+x1_list = []
+x2_list = []
+x3_list = []
+iterations = []
+for i in range(0,steps):
+    x1 = trajectory[i][1] # X1 values
+    x2 = trajectory[i][2] # X2 values
+    x3 = trajectory[i][3]
+    ite = i # keep the iteartions
+    x1_list.append(x1)
+    x2_list.append(x2)
+    x3_list.append(x3)
+    iterations.append(ite)
+
+Rs = 2
+
+#%%
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.animation import FuncAnimation
+
+# Assuming x1_list, x2_list, and x3_list are already defined
+
+skip_frames = 1
+def ergosphere(r, a, theta):
+    return (Rs + np.sqrt(Rs**2 - 4*a**2*np.cos(theta)**2))/2
+def horizon(r, a):
+    return (r + np.sqrt(r**2 - 4*a**3))/2
+
+fig = plt.figure(dpi=100)
+ax = fig.add_subplot(projection='3d')
+
+# Initialize the scatter plot for the particle
+particle = ax.scatter([], [], [], marker='o', label='Particle', color='red')
+
+# Initialize the orbit plot
+orbit, = ax.plot([], [], [], color='black', alpha=0.6, label='Orbit')
+
+def update(frame):
+    ax.cla()
+    particle_x = x1_list[frame - 1] if frame > 0 else np.nan  # previous x coordinate
+    particle_y = x2_list[frame - 1] if frame > 0 else np.nan  # previous y coordinate
+    particle_z = x3_list[frame - 1] if frame > 0 else np.nan  # previous x coordinate
+    
+    ax.scatter(particle_x, particle_y, particle_z, marker='o', label='Particle', color='red')
+    ax.plot3D(x1_list[:frame], x2_list[:frame], x3_list[:frame], color='black', alpha = 0.6, label = 'Orbit')
+    
+    lim = 5
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_zlim(-lim, lim)
+    
+    theta = np.linspace(0, np.pi, 100)
+    phi = np.linspace(0, 2*np.pi, 100)
+    theta, phi = np.meshgrid(theta, phi)
+    r_bh = horizon(Rs, a)
+    r_ergo = ergosphere(Rs, a, phi)
+    
+    # Convert spherical coordinates to Cartesian coordinates
+    x_ergo = r_ergo * np.sin(theta) * np.cos(phi)
+    y_ergo = r_ergo * np.sin(theta) * np.sin(phi)
+    z_ergo = r_ergo * np.cos(theta)
+    
+    x_bh = r_bh * np.sin(theta) * np.cos(phi)
+    y_bh = r_bh * np.sin(theta) * np.sin(phi)
+    z_bh = r_bh * np.cos(theta)
+    
+    
+    # Plot ergosphere
+    ax.plot_surface(x_ergo, y_ergo, z_ergo, color='gray', alpha=0.5)
+    ax.plot([], [], [], 'o',color = 'gray', label='Ergosphere', alpha = 0.5)
+    # Plot event horizon
+    ax.plot_surface(x_bh, y_bh, z_bh, color='black', alpha = 0.5)
+    ax.plot([], [], [], 'ko', label='Outer horizon', alpha = 0.5)
+
+    ax.set_title(f" Animated 3D plot of time-like geodisic, Kerr balck hole (a = {a})")
+
+    ax.set_xlabel(r'$\frac{X}{R_s}$', labelpad=20)
+    ax.set_ylabel(r'$\frac{Y}{R_s}$', labelpad=20)
+    ax.set_zlabel(r'$\frac{Z}{R_s}$', labelpad=20)
+    
+    ax.legend()
+
+
+fps = 500
+ani = FuncAnimation(fig=fig, func=update, frames = len(x1_list), interval = 1/fps,repeat=True)
+
+plt.show()
+#%%
