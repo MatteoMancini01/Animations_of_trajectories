@@ -1,0 +1,57 @@
+# =============================================================================
+# Animation of the carr black hole for different values of a
+# =============================================================================
+Rs = 2
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.animation import FuncAnimation
+
+
+def ergosphere(r, a, theta):
+    return (Rs + np.sqrt(Rs**2 - 4*a**2*np.cos(theta)**2))/2
+def horizon(r, a):
+    return (r + np.sqrt(r**2 - 4*a**3))/2
+
+def kerr_black_hole(a):
+    theta = np.linspace(0, np.pi, 100)
+    phi = np.linspace(0, 2*np.pi, 100)
+    theta, phi = np.meshgrid(theta, phi)
+    r_bh = horizon(Rs, a)
+    r_ergo = ergosphere(Rs, a, phi)
+    
+    # Convert spherical coordinates to Cartesian coordinates
+    x_ergo = r_ergo * np.sin(theta) * np.cos(phi)
+    y_ergo = r_ergo * np.sin(theta) * np.sin(phi)
+    z_ergo = r_ergo * np.cos(theta)
+    
+    x_bh = r_bh * np.sin(theta) * np.cos(phi)
+    y_bh = r_bh * np.sin(theta) * np.sin(phi)
+    z_bh = r_bh * np.cos(theta)
+    
+    return x_ergo, y_ergo, z_ergo, x_bh, y_bh, z_bh
+
+# Animation
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+
+def update_plot(a):
+    ax.clear()
+    ax.set_title(f'Kerr Black Hole (a={a:.2f})')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.plot([], [], [], 'o',color = 'gray', label='Ergosphere', alpha = 0.5)
+    ax.plot([], [], [], 'ko', label='Outer horizon', alpha = 0.8)
+
+    Xe, Ye, Ze, Xh, Yh, Zh = kerr_black_hole(a)
+    ax.plot_surface(Xe, Ye, Ze, color='gray', alpha=0.4)
+    ax.plot_surface(Xh, Yh, Zh, color='black', alpha=0.8)
+    ax.legend()
+    
+
+a = np.arange(0.1, 1.0, 0.01)
+ani = FuncAnimation(fig, update_plot, frames= a, interval=100)
+plt.show()
