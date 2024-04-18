@@ -1,0 +1,146 @@
+# =============================================================================
+# Using RK4 Method
+# =============================================================================
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+#%%
+c = 1 # set speed of light in a vacuum equal to one
+rs = 1 # schwarzchild radius 
+J = 2 # angular momentum
+E = 0.92999 # total energy #set to 0.92999
+
+
+#starting values
+phi0 = 0 # initial value for tau
+r0 = 4.673*rs # initial value for r. set it to r0 = 4.673*rs
+#r0 = 5*rs # change radius to 5rs to see a smaller shift
+
+# now we are going to define f(y,t) our ODE
+
+def f(phi, r):
+    return (r**2/J) * np.sqrt(E - (1 - rs/r)*(c**2 + (J/r)**2))# remember this is plus or minus
+
+# Now we are going to set few lists:
+
+phi_values = [] # will collect all the values of tau
+r_value = [] # will collect all the values of r at proper time tau
+
+phi_old = phi0
+r_old = r0 # used for iterating procedure 
+
+phi_values.append(phi_old)
+r_value.append(r_old) # appending old values to lists
+
+# let delta in the RK-4 method be rappresented by h, the smaller
+# we chose h to be the lower will the error be (h is the step size):
+h = 0.01 # chose h = 0.01 for accurate result
+phi_end  = 100 # end of t values 
+
+Nsteps = np.int(np.floor((phi_end-phi0)/h)) # this will allow us to define a range in 
+# our for loop
+# now we can start our loop
+for i in range(0, Nsteps):
+    
+    phi_now = phi_old + h
+    
+    k1 = f(phi_old,r_old)
+    k2 = f(phi_old + 0.5*h, r_old + 0.5*k1*h)
+    k3 = f(phi_old + 0.5*h, r_old + 0.5*k2*h)
+    k4 = f(phi_old + h, r_old + k3*h)
+    
+    r_now = r_old + h*(k1 + 2*k2 + 2*k3 + k4)/6
+    
+    phi_values.append(phi_now)
+    r_value.append(r_now)
+    
+    phi_old = phi_now
+    r_old = r_now
+    
+r_values = [x for x in r_value if not math.isnan(x)]
+
+
+r_inverse = r_values[::-1]
+r_reverse = r_inverse[1:-1]
+
+rs1 = r_values + r_reverse + r_values + r_reverse + r_values
+rs2 = r_reverse + r_values + r_reverse + r_values + r_reverse
+
+# for animation animation
+rs0 = rs1 + rs2 
+
+a = phi_values[-1]
+a_list = []
+iterations = abs(len(rs0)-len(phi_values))
+
+for _ in range(iterations):
+    
+    a += 0.01
+    
+    a_list.append(a)
+
+phis = phi_values + a_list
+
+
+if len(rs0) == len(phis):
+    phi = phis
+else:
+    m = abs(len(rs0) - len(phis))
+    phi = phis[:-m]
+    
+xs = []
+ys = []
+
+for i in range(len(rs0)):
+    x = rs0[i]*np.cos(phi[i])
+    y = rs0[i]*np.sin(phi[i])
+    xs.append(x)
+    ys.append(y)
+
+# Define the figure and axis
+fig, ax = plt.subplots()
+
+# Define the circle
+rs = 1
+circle = plt.Circle((0, 0), rs, color='black', alpha=0.5, label=r'Static black hole of radius $R_s = 1$')
+ax.add_artist(circle)
+
+# Plot the trajectory in the xy-plane
+
+line, = ax.plot([], [], label='perihelion orbit', color = 'black')
+ax.axhline(0, color='black', linewidth=0.5)
+ax.axvline(0, color='black', linewidth=0.5)
+ax.set_aspect('equal', adjustable='box')
+ax.set_xlim(-10, 10)
+ax.set_ylim(-10, 10)
+ax.set_ylabel(r'$\frac{y}{R_s}$')
+ax.set_xlabel(r'$\frac{x}{R_s}$')
+ax.set_title('Perihelion shift in the proximity of a static black hole the xy-plane (RK4)')
+#ax.scatter(0, 0, label = 'Particle', color = 'red', s=0)
+
+particle, = ax.plot([], [], 'ro', label = 'Particle')  # red dot for the particle
+
+# Function to initialize the plot
+def init():
+    line.set_data([], [])
+    return line,
+
+# Function to animate the plot
+def animate(frame):
+    x_data = xs[:frame]
+    y_data = ys[:frame]
+    line.set_data(x_data, y_data)
+    # Update the position of the particle
+    particle_x = xs[frame - 1] if frame > 0 else np.nan  # previous x coordinate
+    particle_y = ys[frame - 1] if frame > 0 else np.nan  # previous y coordinate
+    particle.set_data(particle_x, particle_y)
+    return line, particle, 
+
+# Create the animation
+ani = FuncAnimation(fig, animate, init_func=init, frames=len(xs), interval=0, blit=True)
+
+ax.legend(loc='upper right', bbox_to_anchor=(1.5, 1))
+
+plt.show()
+#%%
