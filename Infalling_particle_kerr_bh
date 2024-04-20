@@ -1,7 +1,10 @@
 # =============================================================================
 # Infalling particles Kerr Black hole Time-Like
 # =============================================================================
-
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import numpy as np
 import time
 # =============================================================================
