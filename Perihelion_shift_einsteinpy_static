@@ -1,0 +1,85 @@
+# =============================================================================
+# Using EinsteinPy
+# =============================================================================
+import numpy as np 
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from einsteinpy.geodesic import Timelike
+
+r0 = 9.346
+r1 = 12 #circular orbit
+r2 = 6
+
+X = [r2, np.pi/2 , 0] #position vector, set initial position radial value as 9.346, unstable circular orbit
+# at r = 4, stable circular orbit at r = 12
+P = [0., 0., 4] #momentum set p_phi = 4
+
+a = 0.
+
+steps = 10000 #good plot set steps = 1000, 26 steps for unstable circular orbit and 227 for stable
+
+delta = 1.
+
+geod = Timelike(metric = 'Schwarzschild', metric_params=(a,), position = X, momentum = P, steps = steps,
+                delta = delta, return_cartesian = True)
+
+
+trajectory = geod.trajectory[1]
+x1_list = []
+x2_list = []
+iterations = []
+for i in range(0,steps):
+    x1 = trajectory[i][1] # X1 values
+    x2 = trajectory[i][2] # X2 values 
+    ite = i # keep the iteartions
+    x1_list.append(x1)
+    x2_list.append(x2)
+    iterations.append(ite)
+
+fig, ax = plt.subplots()
+
+# Define the circle
+rs = 2
+circle = plt.Circle((0, 0), rs, color='black', alpha=0.5, label=r'Static black hole of radius $R_s = 2$')
+ax.add_artist(circle)
+
+# Plot the trajectory in the xy-plane
+
+line, = ax.plot([], [], label='perihelion orbit', color = 'black')
+ax.axhline(0, color='black', linewidth=0.5)
+ax.axvline(0, color='black', linewidth=0.5)
+ax.set_aspect('equal', adjustable='box')
+lim = 50
+ax.set_xlim(-lim, lim)
+ax.set_ylim(-lim, lim)
+ax.set_ylabel(r'$\frac{y}{R_s}$')
+ax.set_xlabel(r'$\frac{x}{R_s}$')
+ax.set_title('Perihelion shift in the proximity of a static black hole the xy-plane (EinsteinPy)')
+#ax.scatter(0, 0, label = 'Particle', color = 'red', s=0)
+
+particle, = ax.plot([], [], 'ro', label = 'Particle')  # red dot for the particle
+
+# Function to initialize the plot
+def init():
+    line.set_data([], [])
+    return line,
+
+# Function to animate the plot
+def animate(frame):
+    x_data = x1_list[:frame]
+    y_data = x2_list[:frame]
+    line.set_data(x_data, y_data)
+    # Update the position of the particle
+    particle_x = x1_list[frame - 1] if frame > 0 else np.nan  # previous x coordinate
+    particle_y = x2_list[frame - 1] if frame > 0 else np.nan  # previous y coordinate
+    particle.set_data(particle_x, particle_y)
+    return line, particle, 
+
+# Create the animation
+ani = FuncAnimation(fig, animate, init_func=init, frames=len(x1_list), interval=0, blit=True)
+
+ax.legend(loc='upper right', bbox_to_anchor=(1.5, 1))
+
+plt.show()
